@@ -3,6 +3,7 @@
 #include "json.hpp"
 #include "PID.h"
 #include <math.h>
+#include <fstream>
 
 // for convenience
 using json = nlohmann::json;
@@ -34,8 +35,12 @@ int main()
 
   PID pid;
   
-  pid.Init(0.11,0,1);
-  h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  pid.Init(0.11,0.001,5.5);
+
+  std::ofstream cte_file;
+  cte_file.open ("cte.txt");
+  
+  h.onMessage([&pid,&cte_file](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -57,9 +62,11 @@ int main()
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
-          std::cout << "cte: " << cte << std::endl;
+          // DEBUG
+          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
           steer_value = - pid.Kp_ * cte - pid.Kd_ * (cte - pid.old_cte) - pid.Ki_ * pid.total_cte; 
           pid.UpdateError(cte);
+          cte_file << cte << "\n";
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = 0.3;
